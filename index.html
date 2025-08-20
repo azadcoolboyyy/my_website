@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Falling Walls</title>
+  <style>
+    body { margin:0; background:black; overflow:hidden; }
+    canvas { display:block; margin:auto; background:#222; }
+    #msg {
+      position: absolute; top: 40%; width: 100%; text-align: center;
+      font-size: 32px; color: white; font-family: sans-serif; display: none;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="msg">Game Over<br>Press SPACE to Restart</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+canvas.width = 400;
+canvas.height = 500;
+
+let player, walls, score, alive;
+let keys = {}; // track pressed keys
+
+function resetGame() {
+  player = { x: canvas.width/2 - 15, y: canvas.height - 40, w: 30, h: 30, speed: 5 };
+  walls = [];
+  score = 0;
+  alive = true;
+  document.getElementById("msg").style.display = "none";
+}
+
+function spawnWall() {
+  let w = 80;
+  let hole = Math.floor(Math.random()*(canvas.width - w));
+  walls.push({ y: -20, holeX: hole, holeW: w });
+}
+
+function update() {
+  if (!alive) return;
+
+  ctx.fillStyle = "#222";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Handle movement
+  if (keys["ArrowLeft"] || keys["a"] || keys["A"]) player.x -= player.speed;
+  if (keys["ArrowRight"] || keys["d"] || keys["D"]) player.x += player.speed;
+
+  // Keep player inside screen
+  if (player.x < 0) player.x = 0;
+  if (player.x + player.w > canvas.width) player.x = canvas.width - player.w;
+
+  // Draw player
+  ctx.fillStyle = "cyan";
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  // Draw and move walls
+  ctx.fillStyle = "red";
+  for (let i=0;i<walls.length;i++) {
+    let wall = walls[i];
+    wall.y += 3;
+    ctx.fillRect(0, wall.y, wall.holeX, 20);
+    ctx.fillRect(wall.holeX+wall.holeW, wall.y, canvas.width-(wall.holeX+wall.holeW), 20);
+
+    // Collision
+    if (player.y < wall.y+20 && player.y+player.h > wall.y) {
+      if (player.x < wall.holeX || player.x+player.w > wall.holeX+wall.holeW) {
+        alive = false;
+        document.getElementById("msg").style.display = "block";
+      }
+    }
+  }
+
+  // Remove old walls
+  walls = walls.filter(w=>w.y < canvas.height);
+
+  // Score
+  ctx.fillStyle = "white";
+  ctx.font = "20px sans-serif";
+  ctx.fillText("Score: "+score, 10, 25);
+  score++;
+}
+
+setInterval(spawnWall, 1500);
+
+function loop() {
+  update();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// Track key states
+document.addEventListener("keydown", e=>{
+  keys[e.key] = true;
+  if (e.key === " " && !alive) resetGame();
+});
+document.addEventListener("keyup", e=>{
+  keys[e.key] = false;
+});
+
+resetGame();
+</script>
+</body>
+</html>
